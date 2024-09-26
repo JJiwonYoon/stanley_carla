@@ -20,9 +20,10 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
 
 add_executable(stanley_carla src/stanley.cpp)
-ament_target_dependencies(stanley_carla rclcpp sensor_msgs nav_msgs)
+ament_target_dependencies(stanley_carla rclcpp sensor_msgs nav_msgs std_msgs)
 
 install(TARGETS
   stanley_carla
