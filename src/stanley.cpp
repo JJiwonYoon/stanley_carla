@@ -31,8 +31,13 @@ public:
         carla_object_y = this->create_subscription<std_msgs::msg::Float32MultiArray>(
             "/avg_y", 10, std::bind(&carlaSubscriber::object_y_callback, this, std::placeholders::_1));
 
+        odom_x = std::make_shared<double>(0.0);
+        odom_y = std::make_shared<double>(0.0);
+        current_yaw = std::make_shared<double>(0.0);
+
         whileThread = std::thread(&carlaSubscriber::runWhileLoop, this);
         // publisher_ = this->create_publisher<nav_msgs::msg::Odometry>("filtered_lidar_1", 10);
+
     }
 
     ~carlaSubscriber()
@@ -46,9 +51,10 @@ public:
 private:
     void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg)
     {
-        float odom_x = msg->pose.pose.position.x;
-        float odom_y = msg->pose.pose.position.y;
-        std::cout << "x: " << odom_x << ", y: " << odom_y << std::endl;
+        *odom_x = msg->pose.pose.position.x;
+        *odom_y = msg->pose.pose.position.y;
+
+        *current_yaw = quaternion_to_euler(msg->pose.pose.orientation.x, msg->pose.pose.orientation.y, msg->pose.pose.orientation.z, msg->pose.pose.orientation.w);
     }
 
     void object_x_callback(const std_msgs::msg::Float32MultiArray::SharedPtr msg)
@@ -85,7 +91,7 @@ private:
         }
     }
 
-    void readFileToString(const std::string& filePath, std::string& content)
+    void readFileToVector(const std::string& filePath, std::vector<double>& content)
     {
         std::ifstream file(filePath); // 파일을 엽니다.
 
@@ -95,12 +101,31 @@ private:
             return;  // 파일 열기 실패 시 함수 종료
         }
 
-        std::stringstream buffer;
-        buffer << file.rdbuf();  // 파일 내용을 버퍼에 읽어들입니다.
-
-        content = buffer.str();  // 버퍼 내용을 content에 저장
+        std::string line;
+        while (std::getline(file, line)) {
+            std::stringstream ss(line);
+            double value;
+            while (ss >> value) {
+                content.push_back(value);
+            }
+        }
 
         file.close();  // 파일을 닫습니다.
+    }
+
+    void readFileToVectors(const std::string& filePath1, const std::string& filePath2, const std::string& filePath3, std::vector<double>& content1, std::vector<double>& content2, std::vector<double>& content3)
+    {
+        readFileToVector(filePath1, content1);
+        readFileToVector(filePath2, content2);
+        readFileToVector(filePath3, content3);
+    }
+
+    double quaternion_to_euler(double x, double y, double z, double w)
+    {
+        // yaw (z-axis rotation)
+        double siny_cosp = 2 * (w * z + x * y);
+        double cosy_cosp = 1 - 2 * (y * y + z * z);
+        return std::atan2(siny_cosp, cosy_cosp);
     }
 
     double normalize_angle(double angle)
@@ -161,11 +186,29 @@ private:
 
     void runWhileLoop()
     {
-        float path_x, path_y, path_yaw;
-        while (1)
+        std::string filePath1 = "/home/oskar/Downloads/first_x.txt"; // 읽어올 파일 경로
+        std::string filePath2 = "/home/oskar/Downloads/first_y.txt"; // 읽어올 파일 경로
+        std::string filePath3 = "/home/oskar/Downloads/first_yaw.txt"; // 읽어올 파일 경로
+        std::vector<double> content1, content2, content3;
+        readFileToVectors(filePath1, filePath2, filePath3, content1, content2, content3);
+        // std::cout << "첫 번째 파일 내용:\n";
+        // for (const auto& val : content1) {
+        //     std::cout << val << std::endl;
+        // }
+
+        // std::cout << "두 번째 파일 내용:\n";
+        // for (const auto& val : content2) {
+        //     std::cout << val << std::endl;
+        // }
+
+        // std::cout << "세 번째 파일 내용:\n";
+        // for (const auto& val : content3) {
+        //     std::cout << val << std::endl;
+        // }
+        while (rclcpp::ok())
         {
-            std::cout << "Running while loop..." << std::endl;
-            std::this_thread::sleep_for(std::chrono::seconds(1)); // 1초 대기
+            std::cout << "odom_x: " << *odom_x << ", odom_y: " << *odom_y << ", current_yaw: " << *current_yaw << std::endl;
+            std::this_thread::sleep_for(std::chrono::milliseconds(100)); // 100밀리초 대기
         }
     }
 
@@ -173,6 +216,10 @@ private:
     rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr carla_object_x;
     rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr carla_object_y;
     std::thread whileThread;
+
+    std::shared_ptr<double> odom_x;
+    std::shared_ptr<double> odom_y;
+    std::shared_ptr<double> current_yaw;
     // rclcpp::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr publisher_;
 };
 
