@@ -1,6 +1,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/float32_multi_array.hpp"
 #include "nav_msgs/msg/odometry.hpp"
+#include "geometry_msgs/msg/twist.hpp"
 
 #include <stdio.h>
 #include <iostream>
@@ -30,6 +31,8 @@ public:
 
         carla_object_y = this->create_subscription<std_msgs::msg::Float32MultiArray>(
             "/avg_y", 10, std::bind(&carlaSubscriber::object_y_callback, this, std::placeholders::_1));
+
+        cmd_publisher_ = this->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
 
         odom_x = std::make_shared<double>(0.0);
         odom_y = std::make_shared<double>(0.0);
@@ -190,24 +193,18 @@ private:
         std::string filePath2 = "/home/oskar/Downloads/first_y.txt"; // 읽어올 파일 경로
         std::string filePath3 = "/home/oskar/Downloads/first_yaw.txt"; // 읽어올 파일 경로
         std::vector<double> content1, content2, content3;
+        int last_target_idx = 0;
         readFileToVectors(filePath1, filePath2, filePath3, content1, content2, content3);
-        // std::cout << "첫 번째 파일 내용:\n";
-        // for (const auto& val : content1) {
-        //     std::cout << val << std::endl;
-        // }
 
-        // std::cout << "두 번째 파일 내용:\n";
-        // for (const auto& val : content2) {
-        //     std::cout << val << std::endl;
-        // }
-
-        // std::cout << "세 번째 파일 내용:\n";
-        // for (const auto& val : content3) {
-        //     std::cout << val << std::endl;
-        // }
         while (rclcpp::ok())
         {
-            std::cout << "odom_x: " << *odom_x << ", odom_y: " << *odom_y << ", current_yaw: " << *current_yaw << std::endl;
+            auto [delta, current_target_idx] = stanley_control(*odom_x, *odom_y, *current_yaw, content1, content2, content3, last_target_idx);
+            std::cout << "Calculated steering angle (delta): " << delta << std::endl;
+            std::cout << "Current target index: " << current_target_idx << std::endl;
+            auto cmd_vel_msg = geometry_msgs::msg::Twist();
+            cmd_vel_msg.linear.x = 2.0;
+            cmd_vel_msg.angular.z = delta;
+            cmd_publisher_->publish(cmd_vel_msg);
             std::this_thread::sleep_for(std::chrono::milliseconds(100)); // 100밀리초 대기
         }
     }
@@ -220,7 +217,7 @@ private:
     std::shared_ptr<double> odom_x;
     std::shared_ptr<double> odom_y;
     std::shared_ptr<double> current_yaw;
-    // rclcpp::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr publisher_;
+    rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_publisher_;
 };
 
 int main(int argc, char **argv)
