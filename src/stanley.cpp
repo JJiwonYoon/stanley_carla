@@ -37,6 +37,9 @@ public:
         odom_x = std::make_shared<double>(0.0);
         odom_y = std::make_shared<double>(0.0);
         current_yaw = std::make_shared<double>(0.0);
+        content1 = std::make_shared<std::vector<double>>();
+        content2 = std::make_shared<std::vector<double>>();
+        content3 = std::make_shared<std::vector<double>>();
 
         whileThread = std::thread(&carlaSubscriber::runWhileLoop, this);
         // publisher_ = this->create_publisher<nav_msgs::msg::Odometry>("filtered_lidar_1", 10);
@@ -94,7 +97,7 @@ private:
         }
     }
 
-    void readFileToVector(const std::string& filePath, std::vector<double>& content)
+    void readFileToVector(const std::string& filePath, std::shared_ptr<std::vector<double>>& content)
     {
         std::ifstream file(filePath); // 파일을 엽니다.
 
@@ -109,14 +112,14 @@ private:
             std::stringstream ss(line);
             double value;
             while (ss >> value) {
-                content.push_back(value);
+                content->push_back(value);
             }
         }
 
         file.close();  // 파일을 닫습니다.
     }
 
-    void readFileToVectors(const std::string& filePath1, const std::string& filePath2, const std::string& filePath3, std::vector<double>& content1, std::vector<double>& content2, std::vector<double>& content3)
+    void readFileToVectors(const std::string& filePath1, const std::string& filePath2, const std::string& filePath3, std::shared_ptr<std::vector<double>>& content1, std::shared_ptr<std::vector<double>>& content2, std::shared_ptr<std::vector<double>>& content3)
     {
         readFileToVector(filePath1, content1);
         readFileToVector(filePath2, content2);
@@ -192,13 +195,12 @@ private:
         std::string filePath1 = "/home/oskar/Downloads/first_x.txt"; // 읽어올 파일 경로
         std::string filePath2 = "/home/oskar/Downloads/first_y.txt"; // 읽어올 파일 경로
         std::string filePath3 = "/home/oskar/Downloads/first_yaw.txt"; // 읽어올 파일 경로
-        std::vector<double> content1, content2, content3;
         int last_target_idx = 0;
         readFileToVectors(filePath1, filePath2, filePath3, content1, content2, content3);
 
         while (rclcpp::ok())
         {
-            auto [delta, current_target_idx] = stanley_control(*odom_x, *odom_y, *current_yaw, content1, content2, content3, last_target_idx);
+            auto [delta, current_target_idx] = stanley_control(*odom_x, *odom_y, *current_yaw, *content1, *content2, *content3, last_target_idx);
             std::cout << "Calculated steering angle (delta): " << delta << std::endl;
             std::cout << "Current target index: " << current_target_idx << std::endl;
             auto cmd_vel_msg = geometry_msgs::msg::Twist();
@@ -217,6 +219,9 @@ private:
     std::shared_ptr<double> odom_x;
     std::shared_ptr<double> odom_y;
     std::shared_ptr<double> current_yaw;
+    std::shared_ptr<std::vector<double>> content1;
+    std::shared_ptr<std::vector<double>> content2;
+    std::shared_ptr<std::vector<double>> content3;
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_publisher_;
 };
 
