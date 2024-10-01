@@ -22,12 +22,17 @@ find_package(sensor_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(carla_msgs REQUIRED)
 
 add_executable(stanley_carla src/stanley.cpp)
 ament_target_dependencies(stanley_carla rclcpp sensor_msgs nav_msgs std_msgs geometry_msgs)
 
+add_executable(control_node src/control.cpp)
+ament_target_dependencies(control_node rclcpp geometry_msgs carla_msgs)
+
 install(TARGETS
   stanley_carla
+  control_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
