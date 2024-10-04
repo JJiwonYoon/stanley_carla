@@ -2,6 +2,8 @@
 #include "std_msgs/msg/float32_multi_array.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "geometry_msgs/msg/twist.hpp"
+#include "visualization_msgs/msg/marker.hpp"
+#include "visualization_msgs/msg/marker_array.hpp"
 
 #include <stdio.h>
 #include <iostream>
@@ -33,6 +35,7 @@ public:
             "/avg_y", 10, std::bind(&carlaSubscriber::object_y_callback, this, std::placeholders::_1));
 
         cmd_publisher_ = this->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
+        marker_publisher_ = this->create_publisher<visualization_msgs::msg::Marker>("visualization_marker", 10);
 
         odom_x = std::make_shared<double>(0.0);
         odom_y = std::make_shared<double>(0.0);
@@ -42,15 +45,13 @@ public:
         content3 = std::make_shared<std::vector<double>>();
 
         whileThread = std::thread(&carlaSubscriber::runWhileLoop, this);
-        // publisher_ = this->create_publisher<nav_msgs::msg::Odometry>("filtered_lidar_1", 10);
-
     }
 
     ~carlaSubscriber()
     {
         if (whileThread.joinable())
         {
-            whileThread.join(); // 프로그램 종료 전에 while 루프 스레드 종료 대기
+            whileThread.join();
         }
     }
 
@@ -91,20 +92,16 @@ private:
             }
             std::cout << std::endl;
         }
-        else
-        {
-            std::cout << "Received empty data array." << std::endl;
-        }
     }
 
     void readFileToVector(const std::string& filePath, std::shared_ptr<std::vector<double>>& content)
     {
-        std::ifstream file(filePath); // 파일을 엽니다.
+        std::ifstream file(filePath);
 
         if (!file.is_open())
         {
             std::cerr << "파일을 열 수 없습니다: " << filePath << std::endl;
-            return;  // 파일 열기 실패 시 함수 종료
+            return;
         }
 
         std::string line;
@@ -116,7 +113,7 @@ private:
             }
         }
 
-        file.close();  // 파일을 닫습니다.
+        file.close();
     }
 
     void readFileToVectors(const std::string& filePath1, const std::string& filePath2, const std::string& filePath3, std::shared_ptr<std::vector<double>>& content1, std::shared_ptr<std::vector<double>>& content2, std::shared_ptr<std::vector<double>>& content3)
@@ -190,6 +187,60 @@ private:
         return {delta, current_target_idx};
     }
 
+    void publish_current_position()
+    {
+        visualization_msgs::msg::Marker marker;
+        marker.header.frame_id = "map";
+        marker.header.stamp = this->now();
+        marker.ns = "current_position";
+        marker.id = 0;
+        marker.type = visualization_msgs::msg::Marker::SPHERE;
+        marker.action = visualization_msgs::msg::Marker::ADD;
+        marker.pose.position.x = *odom_x;
+        marker.pose.position.y = *odom_y;
+        marker.pose.position.z = 0.0;
+        marker.pose.orientation.x = 0.0;
+        marker.pose.orientation.y = 0.0;
+        marker.pose.orientation.z = 0.0;
+        marker.pose.orientation.w = 1.0;
+        marker.scale.x = 0.5;
+        marker.scale.y = 0.5;
+        marker.scale.z = 0.5;
+        marker.color.a = 1.0;
+        marker.color.r = 0.0;
+        marker.color.g = 1.0;
+        marker.color.b = 0.0;
+
+        marker_publisher_->publish(marker);
+    }
+
+    void publish_path()
+    {
+        visualization_msgs::msg::Marker marker;
+        marker.header.frame_id = "map";
+        marker.header.stamp = this->now();
+        marker.ns = "path";
+        marker.id = 1;
+        marker.type = visualization_msgs::msg::Marker::LINE_STRIP;
+        marker.action = visualization_msgs::msg::Marker::ADD;
+        marker.scale.x = 0.1;
+        marker.color.a = 1.0;
+        marker.color.r = 1.0;
+        marker.color.g = 0.0;
+        marker.color.b = 0.0;
+
+        for (size_t i = 0; i < content1->size(); ++i)
+        {
+            geometry_msgs::msg::Point p;
+            p.x = content1->at(i);
+            p.y = content2->at(i);
+            p.z = 0.0;
+            marker.points.push_back(p);
+        }
+
+        marker_publisher_->publish(marker);
+    }
+
     void runWhileLoop()
     {
         std::string filePath1 = "/home/oskar/Downloads/first_x.txt"; // 읽어올 파일 경로
@@ -197,6 +248,8 @@ private:
         std::string filePath3 = "/home/oskar/Downloads/first_yaw.txt"; // 읽어올 파일 경로
         int last_target_idx = 0;
         readFileToVectors(filePath1, filePath2, filePath3, content1, content2, content3);
+
+        publish_path();
 
         while (rclcpp::ok())
         {
@@ -207,6 +260,9 @@ private:
             cmd_vel_msg.linear.x = 2.0;
             cmd_vel_msg.angular.z = delta;
             cmd_publisher_->publish(cmd_vel_msg);
+
+            publish_current_position();
+
             std::this_thread::sleep_for(std::chrono::milliseconds(100)); // 100밀리초 대기
         }
     }
@@ -223,6 +279,7 @@ private:
     std::shared_ptr<std::vector<double>> content2;
     std::shared_ptr<std::vector<double>> content3;
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_publisher_;
+    rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr marker_publisher_;
 };
 
 int main(int argc, char **argv)

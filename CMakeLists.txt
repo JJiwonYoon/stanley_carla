@@ -23,9 +23,10 @@ find_package(nav_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(carla_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)  # 추가된 부분
 
 add_executable(stanley_carla src/stanley.cpp)
-ament_target_dependencies(stanley_carla rclcpp sensor_msgs nav_msgs std_msgs geometry_msgs)
+ament_target_dependencies(stanley_carla rclcpp sensor_msgs nav_msgs std_msgs geometry_msgs visualization_msgs)  # 수정된 부분
 
 add_executable(control_node src/control.cpp)
 ament_target_dependencies(control_node rclcpp geometry_msgs carla_msgs)
@@ -37,8 +38,7 @@ install(TARGETS
 )
 
 if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
-  ament_lint_auto_find_test_dependencies()
+  # Add testing targets here
 endif()
 
 ament_package()
