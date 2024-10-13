@@ -197,6 +197,9 @@ private:
         std::string filePath1 = "/home/oskar/Downloads/first_x.txt"; // 읽어올 파일 경로
         std::string filePath2 = "/home/oskar/Downloads/first_y.txt"; // 읽어올 파일 경로
         std::string filePath3 = "/home/oskar/Downloads/first_yaw.txt"; // 읽어올 파일 경로
+        std::vector<double> current_slice_path_x;
+        std::vector<double> current_slice_path_y;
+
         int last_target_idx = 0;
         readFileToVectors(filePath1, filePath2, filePath3, content1, content2, content3);
         auto [rx, ry, ryaw, rk, csp] = generate_target_course(*content1, *content2);
@@ -204,13 +207,19 @@ private:
 
         while (rclcpp::ok())
         {
-            auto [delta, current_target_idx] = stanley_control(*odom_x, *odom_y, *current_yaw, *content1, *content2, *content3, last_target_idx);
-            std::cout << "Calculated steering angle (delta): " << delta << std::endl;
-            std::cout << "Current target index: " << current_target_idx << std::endl;
-            auto cmd_vel_msg = geometry_msgs::msg::Twist();
-            cmd_vel_msg.linear.x = 2.0;
-            cmd_vel_msg.angular.z = delta;
-            cmd_publisher_->publish(cmd_vel_msg);
+            auto [c_idx, _] = calc_target_index(*odom_x, *odom_y, *current_yaw, *content1, *content2);
+            std::vector<double> slice_path_x(content1->begin() + c_idx, content1->begin() + c_idx + static_cast<int>(content1->size() * 0.1));
+            std::vector<double> slice_path_y(content2->begin() + c_idx, content2->begin() + c_idx + static_cast<int>(content2->size() * 0.1));
+            current_slice_path_x.push_back(*odom_x);
+            current_slice_path_y.push_back(*odom_y);
+            auto [rx, ry, ryaw, rk, csp] = generate_target_course(current_slice_path_x, current_slice_path_y);
+            // auto [delta, current_target_idx] = stanley_control(*odom_x, *odom_y, *current_yaw, *content1, *content2, *content3, last_target_idx);
+            // std::cout << "Calculated steering angle (delta): " << delta << std::endl;
+            std::cout << "Current target index: " << c_idx << std::endl;
+            // auto cmd_vel_msg = geometry_msgs::msg::Twist();
+            // cmd_vel_msg.linear.x = 2.0;
+            // cmd_vel_msg.angular.z = delta;
+            // cmd_publisher_->publish(cmd_vel_msg);
 
             visual_helpers_->publish_current_position(odom_x, odom_y, this->get_clock());
 
