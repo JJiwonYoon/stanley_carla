@@ -1,3 +1,6 @@
+#ifndef CUBIC_SPLINE_PLANNER_HPP
+#define CUBIC_SPLINE_PLANNER_HPP
+
 #include <vector>
 #include <cmath>
 #include <stdexcept>
@@ -7,6 +10,7 @@
 
 class CubicSpline1D {
 public:
+    CubicSpline1D() = default; // 기본 생성자 추가
     CubicSpline1D(const std::vector<double>& x, const std::vector<double>& y) {
         if (x.size() != y.size()) {
             throw std::invalid_argument("x and y must be the same size");
@@ -98,8 +102,9 @@ public:
         return std::make_pair(x, y);
     }
 
+    std::vector<double> s; // public으로 변경
+
 private:
-    std::vector<double> s;
     CubicSpline1D sx, sy;
 
     std::vector<double> calc_s(const std::vector<double>& x, const std::vector<double>& y) const {
@@ -113,3 +118,5 @@ private:
         return s;
     }
 };
+
+#endif // CUBIC_SPLINE_PLANNER_HPP

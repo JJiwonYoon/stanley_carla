@@ -23,14 +23,30 @@ find_package(nav_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(carla_msgs REQUIRED)
-find_package(visualization_msgs REQUIRED)  # 추가된 부분
+find_package(visualization_msgs REQUIRED)
+find_package(Eigen3 REQUIRED)  # 추가된 부분
 
+# include directories
+include_directories(
+  include
+  ${rclcpp_INCLUDE_DIRS}
+  ${sensor_msgs_INCLUDE_DIRS}
+  ${nav_msgs_INCLUDE_DIRS}
+  ${std_msgs_INCLUDE_DIRS}
+  ${geometry_msgs_INCLUDE_DIRS}
+  ${carla_msgs_INCLUDE_DIRS}
+  ${visualization_msgs_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIR}  # 추가된 부분
+)
+
+# add executables
 add_executable(stanley_carla src/stanley.cpp)
-ament_target_dependencies(stanley_carla rclcpp sensor_msgs nav_msgs std_msgs geometry_msgs visualization_msgs)  # 수정된 부분
+ament_target_dependencies(stanley_carla rclcpp sensor_msgs nav_msgs std_msgs geometry_msgs visualization_msgs)
 
 add_executable(control_node src/control.cpp)
 ament_target_dependencies(control_node rclcpp geometry_msgs carla_msgs)
 
+# install targets
 install(TARGETS
   stanley_carla
   control_node

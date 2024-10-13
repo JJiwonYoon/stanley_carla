@@ -14,6 +14,9 @@
 #include <vector>
 #include <cmath>
 #include <algorithm>
+#include <utility>
+#include "frenet_optimal_trajectory.hpp"
+#include "cubic_spline_planner.hpp"
 
 const double k = 3.0;  // control gain
 const double L = 2.0;  // [m] Wheel base of vehicle
@@ -243,12 +246,12 @@ private:
 
     void runWhileLoop()
     {
-        std::string filePath1 = "/home/kigam/Downloads/first_x.txt"; // 읽어올 파일 경로
-        std::string filePath2 = "/home/kigam/Downloads/first_y.txt"; // 읽어올 파일 경로
-        std::string filePath3 = "/home/kigam/Downloads/first_yaw.txt"; // 읽어올 파일 경로
+        std::string filePath1 = "/home/oskar/Downloads/first_x.txt"; // 읽어올 파일 경로
+        std::string filePath2 = "/home/oskar/Downloads/first_y.txt"; // 읽어올 파일 경로
+        std::string filePath3 = "/home/oskar/Downloads/first_yaw.txt"; // 읽어올 파일 경로
         int last_target_idx = 0;
         readFileToVectors(filePath1, filePath2, filePath3, content1, content2, content3);
-
+        auto [rx, ry, ryaw, rk, csp] = generate_target_course(*content1, *content2);
         publish_path();
 
         while (rclcpp::ok())
