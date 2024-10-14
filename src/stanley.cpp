@@ -194,27 +194,35 @@ private:
 
     void runWhileLoop()
     {
-        std::string filePath1 = "/home/oskar/Downloads/first_x.txt"; // 읽어올 파일 경로
-        std::string filePath2 = "/home/oskar/Downloads/first_y.txt"; // 읽어올 파일 경로
-        std::string filePath3 = "/home/oskar/Downloads/first_yaw.txt"; // 읽어올 파일 경로
+        std::string filePath1 = "/home/kigam/Downloads/first_x.txt"; // 읽어올 파일 경로
+        std::string filePath2 = "/home/kigam/Downloads/first_y.txt"; // 읽어올 파일 경로
+        std::string filePath3 = "/home/kigam/Downloads/first_yaw.txt"; // 읽어올 파일 경로
         std::vector<double> current_slice_path_x;
         std::vector<double> current_slice_path_y;
 
         int last_target_idx = 0;
         readFileToVectors(filePath1, filePath2, filePath3, content1, content2, content3);
-        auto [rx, ry, ryaw, rk, csp] = generate_target_course(*content1, *content2);
+        // auto [rx, ry, ryaw, rk, csp] = generate_target_course(*content1, *content2);
         visual_helpers_->publish_path(content1, content2, this->get_clock());
 
         while (rclcpp::ok())
         {
             auto [c_idx, _] = calc_target_index(*odom_x, *odom_y, *current_yaw, *content1, *content2);
-            std::vector<double> slice_path_x(content1->begin() + c_idx, content1->begin() + c_idx + static_cast<int>(content1->size() * 0.1));
-            std::vector<double> slice_path_y(content2->begin() + c_idx, content2->begin() + c_idx + static_cast<int>(content2->size() * 0.1));
-            current_slice_path_x.push_back(*odom_x);
-            current_slice_path_y.push_back(*odom_y);
-            auto [rx, ry, ryaw, rk, csp] = generate_target_course(current_slice_path_x, current_slice_path_y);
+            int slice_length = static_cast<int>(content1->size() * 0.1);
+            std::vector<double> slice_path_x(content1->begin() + c_idx, content1->begin() + std::min(c_idx + slice_length, static_cast<int>(content1->size())));
+            std::vector<double> slice_path_y(content2->begin() + c_idx, content2->begin() + std::min(c_idx + slice_length, static_cast<int>(content2->size())));
+            std::vector<double> current_slice_path_x = {*odom_x};
+            std::vector<double> current_slice_path_y = {*odom_y};
+            if (slice_path_x.size() > 30) {
+                current_slice_path_x.insert(current_slice_path_x.end(), slice_path_x.begin() + 30, slice_path_x.end());
+            }
+
+            if (slice_path_y.size() > 30) {
+                current_slice_path_y.insert(current_slice_path_y.end(), slice_path_y.begin() + 30, slice_path_y.end());
+            }
             // auto [delta, current_target_idx] = stanley_control(*odom_x, *odom_y, *current_yaw, *content1, *content2, *content3, last_target_idx);
             // std::cout << "Calculated steering angle (delta): " << delta << std::endl;
+            visual_helpers_->publish_markers(slice_path_x, slice_path_y, this->get_clock());
             std::cout << "Current target index: " << c_idx << std::endl;
             // auto cmd_vel_msg = geometry_msgs::msg::Twist();
             // cmd_vel_msg.linear.x = 2.0;

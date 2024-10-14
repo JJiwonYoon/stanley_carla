@@ -41,6 +41,32 @@ public:
         marker_publisher_->publish(marker);
     }
 
+    void publish_markers(const std::vector<double>& x, const std::vector<double>& y, rclcpp::Clock::SharedPtr clock)
+    {
+        visualization_msgs::msg::Marker marker;
+        marker.header.frame_id = "map";
+        marker.header.stamp = clock->now();
+        marker.ns = "current_slice_path";
+        marker.id = 0;
+        marker.type = visualization_msgs::msg::Marker::LINE_STRIP;
+        marker.action = visualization_msgs::msg::Marker::ADD;
+        marker.scale.x = 0.1;
+        marker.color.a = 1.0;
+        marker.color.r = 1.0;
+        marker.color.g = 1.0;
+        marker.color.b = 0.0;
+
+        for (size_t i = 0; i < x.size(); ++i) {
+            geometry_msgs::msg::Point p;
+            p.x = x[i];
+            p.y = y[i];
+            p.z = 0.0;
+            marker.points.push_back(p);
+        }
+
+        marker_publisher_->publish(marker);
+    }
+
     void publish_path(const std::shared_ptr<std::vector<double>>& content1,
                     const std::shared_ptr<std::vector<double>>& content2,
                     rclcpp::Clock::SharedPtr clock)
