@@ -199,6 +199,17 @@ private:
         std::string filePath3 = "/home/kigam/Downloads/first_yaw.txt"; // 읽어올 파일 경로
         std::vector<double> current_slice_path_x;
         std::vector<double> current_slice_path_y;
+        std::vector<std::pair<double, double>> obstacles =
+        {
+            {293.288818359375, -1.96007239818573}
+        };
+            // 초기 위치 및 속도 설정
+        double s0 = 0.0;
+        double c_speed = 13.0 / 3.6; // 초기 속도 (m/s)
+        double c_accel = 0.0; // 초기 가속도
+        double c_d = 0.0; // 초기 도로 중심선으로부터의 거리
+        double c_d_d = 0.0; // 초기 도로 중심선으로부터의 속도
+        double c_d_dd = 0.0; // 초기 도로 중심선으로부터의 가속도
 
         int last_target_idx = 0;
         readFileToVectors(filePath1, filePath2, filePath3, content1, content2, content3);
@@ -220,9 +231,14 @@ private:
             if (slice_path_y.size() > 30) {
                 current_slice_path_y.insert(current_slice_path_y.end(), slice_path_y.begin() + 30, slice_path_y.end());
             }
+            auto [rx, ry, ryaw, rk, csp] = generate_target_course(current_slice_path_x, current_slice_path_y);
+            auto [best_path, all_paths] = frenet_optimal_planning(csp, s0, c_speed, c_accel, c_d, c_d_d, c_d_dd, obstacles);
             // auto [delta, current_target_idx] = stanley_control(*odom_x, *odom_y, *current_yaw, *content1, *content2, *content3, last_target_idx);
             // std::cout << "Calculated steering angle (delta): " << delta << std::endl;
-            visual_helpers_->publish_markers(slice_path_x, slice_path_y, this->get_clock());
+            std::vector<double> partial_x(best_path.x.begin() + 1, best_path.x.end());
+            std::vector<double> partial_y(best_path.y.begin() + 1, best_path.y.end());
+
+            visual_helpers_->publish_markers(partial_x, partial_y, this->get_clock());
             std::cout << "Current target index: " << c_idx << std::endl;
             // auto cmd_vel_msg = geometry_msgs::msg::Twist();
             // cmd_vel_msg.linear.x = 2.0;
