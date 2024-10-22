@@ -194,9 +194,9 @@ private:
 
     void runWhileLoop()
     {
-        std::string filePath1 = "/home/kigam/Downloads/first_x.txt"; // 읽어올 파일 경로
-        std::string filePath2 = "/home/kigam/Downloads/first_y.txt"; // 읽어올 파일 경로
-        std::string filePath3 = "/home/kigam/Downloads/first_yaw.txt"; // 읽어올 파일 경로
+        std::string filePath1 = "/home/oskar/Downloads/first_x.txt"; // 읽어올 파일 경로
+        std::string filePath2 = "/home/oskar/Downloads/first_y.txt"; // 읽어올 파일 경로
+        std::string filePath3 = "/home/oskar/Downloads/first_yaw.txt"; // 읽어올 파일 경로
         std::vector<double> current_slice_path_x;
         std::vector<double> current_slice_path_y;
         std::vector<std::pair<double, double>> obstacles =
